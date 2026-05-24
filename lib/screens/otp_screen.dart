@@ -7,7 +7,7 @@ import '../widgets/ui.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
-  final VoidCallback onVerify;
+  final ValueChanged<String> onVerify;
   final VoidCallback onBack;
   const OtpScreen({super.key, required this.phone, required this.onVerify, required this.onBack});
 
@@ -123,7 +123,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 const SizedBox(height: 28),
                 PrimaryButton(
                   text: tr('otp.verifyContinue', locale),
-                  onPressed: _filled ? widget.onVerify : null,
+                  onPressed: _filled ? () => widget.onVerify(_controllers.map((c) => c.text).join()) : null,
                   disabled: !_filled,
                 ),
                 const SizedBox(height: 20),

@@ -4,6 +4,7 @@ import '../i18n/strings.dart';
 import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
 import '../utils/formatters.dart';
+import '../widgets/app_image.dart';
 import '../widgets/ui.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -149,10 +150,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                       child: SizedBox(
                                         width: 28, height: 28,
-                                        child: Image.network(
-                                          p.imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Center(child: Text(p.emoji, style: const TextStyle(fontSize: 16))),
+                                        child: AppImage(
+                                          assetPath: p.localImage,
+                                          networkUrl: p.imageUrl,
+                                          emoji: p.emoji,
+                                          width: 28,
+                                          height: 28,
                                         ),
                                       ),
                                     ),

@@ -3,7 +3,7 @@ import 'package:freshgo_app/main.dart';
 
 void main() {
   testWidgets('App renders login screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const FreshGoApp());
-    expect(find.text('FreshGo'), findsOneWidget);
+    await tester.pumpWidget(const FoodApp());
+    expect(find.text('FoodApp'), findsOneWidget);
   });
 }

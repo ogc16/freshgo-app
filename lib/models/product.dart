@@ -5,6 +5,7 @@ class Product {
   final int price;
   final String emoji;
   final String imageUrl;
+  final String? localImage;
   final String tag;
   final String tagColor;
   final String tagTxt;
@@ -17,6 +18,7 @@ class Product {
     required this.price,
     required this.emoji,
     required this.imageUrl,
+    this.localImage,
     required this.tag,
     required this.tagColor,
     required this.tagTxt,

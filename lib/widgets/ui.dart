@@ -200,6 +200,7 @@ class FormInput extends StatelessWidget {
   final TextInputType keyboardType;
   final EdgeInsetsGeometry? margin;
   final Widget? prefix;
+  final bool enabled;
   const FormInput({
     super.key,
     this.hintText,
@@ -208,6 +209,7 @@ class FormInput extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.margin,
     this.prefix,
+    this.enabled = true,
   });
 
   @override
@@ -222,6 +224,7 @@ class FormInput extends StatelessWidget {
               controller: controller,
               onChanged: onChanged,
               keyboardType: keyboardType,
+              enabled: enabled,
               decoration: InputDecoration(
                 hintText: hintText,
                 hintStyle: const TextStyle(color: txt3, fontSize: 14),
@@ -350,6 +353,7 @@ class BottomNav extends StatelessWidget {
     final items = [
       ('home', 'Home', Icons.home_outlined, Icons.home),
       ('orders', 'Orders', Icons.description_outlined, Icons.description),
+      ('loyalty', 'Loyalty', Icons.card_giftcard_outlined, Icons.card_giftcard),
       ('profile', 'Profile', Icons.person_outline, Icons.person),
     ];
     return Container(

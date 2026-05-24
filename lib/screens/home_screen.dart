@@ -6,12 +6,13 @@ import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
 import '../utils/formatters.dart';
+import '../widgets/app_image.dart';
 import '../widgets/ui.dart';
 
 final _promoBanners = [
-  {'title': 'Fresh Produce & Essentials', 'sub': 'Delivered in 30 mins', 'badge': '30% OFF', 'color': green},
-  {'title': 'Gas Cylinder Refills', 'sub': 'Book now, delivered today', 'badge': 'Book Now', 'color': const Color(0xFFD84315)},
-  {'title': 'Pure Water Refills', 'sub': '20L from UGX 2,000', 'badge': 'Order Now', 'color': info},
+  {'title': 'Fresh Produce & Essentials', 'sub': 'Delivered in 30 mins', 'badge': '30% OFF', 'color': green, 'image': 'assets/images/banners/groceries.jpg'},
+  {'title': 'Gas Cylinder Refills', 'sub': 'Book now, delivered today', 'badge': 'Book Now', 'color': const Color(0xFFD84315), 'image': 'assets/images/banners/gas.jpg'},
+  {'title': 'Pure Water Refills', 'sub': '20L from UGX 2,000', 'badge': 'Order Now', 'color': info, 'image': 'assets/images/banners/water.jpg'},
 ];
 
 class HomeScreen extends StatefulWidget {
@@ -131,38 +132,57 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () => setState(() => _bannerIdx = (_bannerIdx + 1) % _promoBanners.length),
                       child: Container(
                         margin: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                        padding: const EdgeInsets.all(20),
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          color: _promoBanners[_bannerIdx]['color'] as Color,
                           borderRadius: BorderRadius.circular(rad),
                         ),
                         child: Stack(
                           children: [
-                            Positioned(right: -20, top: -20, child: Container(width: 130, height: 130,
-                                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x0FFFFFFF)))),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('\u26A1 Limited Offer',
-                                        style: TextStyle(color: amber, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                                    const SizedBox(height: 5),
-                                    Text(_promoBanners[_bannerIdx]['title'] as String,
-                                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.25)),
-                                    const SizedBox(height: 5),
-                                    Text(_promoBanners[_bannerIdx]['sub'] as String,
-                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 130,
+                              child: AppImage(
+                                assetPath: _promoBanners[_bannerIdx]['image'] as String?,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    (_promoBanners[_bannerIdx]['color'] as Color).withValues(alpha: 0.85),
+                                    (_promoBanners[_bannerIdx]['color'] as Color).withValues(alpha: 0.4),
                                   ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(color: amber, borderRadius: BorderRadius.circular(20)),
-                                  child: Text(_promoBanners[_bannerIdx]['badge'] as String,
-                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('\u26A1 Limited Offer',
+                                          style: TextStyle(color: amber, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                                      const SizedBox(height: 5),
+                                      Text(_promoBanners[_bannerIdx]['title'] as String,
+                                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1.25)),
+                                      const SizedBox(height: 5),
+                                      Text(_promoBanners[_bannerIdx]['sub'] as String,
+                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(color: amber, borderRadius: BorderRadius.circular(20)),
+                                    child: Text(_promoBanners[_bannerIdx]['badge'] as String,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -315,15 +335,12 @@ class _ProductCard extends StatelessWidget {
           Container(
             height: 100,
             color: bgColor,
-            child: Image.network(
-              product.imageUrl,
-              fit: BoxFit.cover,
+            child: AppImage(
+              assetPath: product.localImage,
+              networkUrl: product.imageUrl,
+              emoji: product.emoji,
               width: double.infinity,
-              errorBuilder: (_, __, ___) => Center(child: Text(product.emoji, style: const TextStyle(fontSize: 44))),
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return Center(child: CircularProgressIndicator(strokeWidth: 2, color: green));
-              },
+              height: 100,
             ),
           ),
           Padding(
@@ -493,10 +510,12 @@ class _CartItemRow extends StatelessWidget {
             child: Container(
               width: 46, height: 46,
               color: parseColor(p.bg),
-              child: Image.network(
-                p.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(child: Text(p.emoji, style: const TextStyle(fontSize: 28))),
+              child: AppImage(
+                assetPath: p.localImage,
+                networkUrl: p.imageUrl,
+                emoji: p.emoji,
+                width: 46,
+                height: 46,
               ),
             ),
           ),
