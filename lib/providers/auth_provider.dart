@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/supabase.dart';
@@ -8,6 +9,7 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unauthenticated;
   User? _user;
   String? _error;
+  StreamSubscription<AuthState>? _authSub;
 
   AuthStatus get status => _status;
   User? get user => _user;
@@ -17,11 +19,17 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     _user = supabase.auth.currentUser;
     if (_user != null) _status = AuthStatus.authenticated;
-    supabase.auth.onAuthStateChange.listen((data) {
+    _authSub = supabase.auth.onAuthStateChange.listen((data) {
       _user = data.session?.user;
       _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
       notifyListeners();
     });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> signInWithEmail(String email, String password) async {
@@ -33,23 +41,27 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signUpWithEmail(String email, String password) async {
+  Future<String?> signUpWithEmail(String email, String password) async {
     setState(AuthStatus.authenticating, null);
     try {
       await supabase.auth.signUp(email: email, password: password);
+      return null;
     } on AuthException catch (e) {
       setState(AuthStatus.unauthenticated, e.message);
+      return e.message;
     }
   }
 
-  Future<void> signInWithPhone(String phone) async {
+  Future<String?> signInWithPhone(String phone) async {
     setState(AuthStatus.authenticating, null);
     try {
       await supabase.auth.signInWithOtp(phone: '+256$phone');
       _status = AuthStatus.unauthenticated;
       notifyListeners();
+      return null;
     } on AuthException catch (e) {
       setState(AuthStatus.unauthenticated, e.message);
+      return e.message;
     }
   }
 

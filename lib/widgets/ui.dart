@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 const Color green = Color(0xFF1C5C35);
@@ -383,6 +385,59 @@ class BottomNav extends StatelessWidget {
           );
         }).toList(),
       ),
+    );
+  }
+}
+
+class ConnectivityBanner extends StatefulWidget {
+  final Widget child;
+  const ConnectivityBanner({super.key, required this.child});
+
+  @override
+  State<ConnectivityBanner> createState() => _ConnectivityBannerState();
+}
+
+class _ConnectivityBannerState extends State<ConnectivityBanner> {
+  bool _offline = false;
+  StreamSubscription<List<ConnectivityResult>>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = Connectivity().onConnectivityChanged.listen((results) {
+      if (mounted) setState(() => _offline = results.every((r) => r == ConnectivityResult.none));
+    });
+    Connectivity().checkConnectivity().then((r) {
+      if (mounted) setState(() => _offline = r.every((e) => e == ConnectivityResult.none));
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (_offline)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+            color: danger,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.wifi_off, size: 14, color: Colors.white),
+                SizedBox(width: 6),
+                Expanded(child: Text('No internet connection', style: TextStyle(color: Colors.white, fontSize: 12))),
+              ],
+            ),
+          ),
+        Expanded(child: widget.child),
+      ],
     );
   }
 }

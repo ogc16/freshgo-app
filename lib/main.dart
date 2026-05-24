@@ -9,6 +9,7 @@ import 'providers/loyalty_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/sign_up_screen.dart';
 import 'screens/otp_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/checkout_screen.dart';
@@ -73,24 +74,26 @@ class _PhoneFrameState extends State<PhoneFrame> {
 
   void _navigate(String s) => setState(() => _screen = s);
 
-  void _handleLogin(String email) {
-    context.read<AuthProvider>().signInWithEmail(email, 'password123');
+  void _handleLogin(String email, String password) {
+    context.read<AuthProvider>().signInWithEmail(email, password);
   }
 
   void _handleSignUp() {
-    setState(() => _screen = 'otp');
+    setState(() => _screen = 'signup');
   }
 
   void _handleGuestLogin() {
     context.read<AuthProvider>().signInAnonymously();
   }
 
-  void _handlePhoneLogin(String phone) {
-    setState(() {
-      _phone = phone;
-      _screen = 'otp';
-    });
-    context.read<AuthProvider>().signInWithPhone(phone);
+  Future<void> _handlePhoneLogin(String phone) async {
+    final err = await context.read<AuthProvider>().signInWithPhone(phone);
+    if (err == null && mounted) {
+      setState(() {
+        _phone = phone;
+        _screen = 'otp';
+      });
+    }
   }
 
   void _handleVerify(String code) {
@@ -108,13 +111,15 @@ class _PhoneFrameState extends State<PhoneFrame> {
     });
   }
 
-  bool get _isDarkTop => _screen == 'login' || _screen == 'otp' || _screen == 'loyalty';
+  bool get _isDarkTop => _screen == 'login' || _screen == 'otp' || _screen == 'loyalty' || _screen == 'signup';
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     if (auth.isAuthenticated && _screen == 'login') {
-      WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => _screen = 'home'));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _screen = 'home');
+      });
     }
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -123,16 +128,18 @@ class _PhoneFrameState extends State<PhoneFrame> {
       ),
       child: Scaffold(
         body: SafeArea(
-          child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          child: KeyedSubtree(
-            key: ValueKey('${_screen}_${context.watch<LocaleProvider>().locale}'),
-            child: _buildScreen(),
+          child: ConnectivityBanner(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: KeyedSubtree(
+                key: ValueKey('${_screen}_${context.watch<LocaleProvider>().locale}'),
+                child: _buildScreen(),
+              ),
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -142,6 +149,8 @@ class _PhoneFrameState extends State<PhoneFrame> {
     switch (_screen) {
       case 'login':
         return LoginScreen(onLogin: _handleLogin, onSignUp: _handleSignUp, onGuestLogin: _handleGuestLogin, onPhoneLogin: _handlePhoneLogin);
+      case 'signup':
+        return SignUpScreen(onBack: () => _navigate('login'));
       case 'otp':
         return OtpScreen(phone: _phone, onVerify: _handleVerify, onBack: () => _navigate('login'));
       case 'home':

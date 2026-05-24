@@ -4,10 +4,18 @@ import '../models/product.dart';
 
 class CartProvider extends ChangeNotifier {
   final Map<int, int> _cart = {};
+  Map<int, Product>? _productCache;
   bool _cartOpen = false;
 
   Map<int, int> get cart => _cart;
   bool get cartOpen => _cartOpen;
+
+  Map<int, Product> get _cache {
+    _productCache ??= {for (final p in allProducts) p.id: p};
+    return _productCache!;
+  }
+
+  Product? _product(int id) => _cache[id];
 
   void addItem(int id) {
     _cart[id] = (_cart[id] ?? 0) + 1;
@@ -50,7 +58,7 @@ class CartProvider extends ChangeNotifier {
   int get cartTotal {
     int total = 0;
     _cart.forEach((id, qty) {
-      final p = allProducts.where((x) => x.id == id).firstOrNull;
+      final p = _product(id);
       if (p != null) total += p.price * qty;
     });
     return total;
@@ -58,7 +66,7 @@ class CartProvider extends ChangeNotifier {
 
   List<MapEntry<Product, int>> get cartItems {
     return _cart.entries.map((e) {
-      final p = allProducts.firstWhere((x) => x.id == e.key);
+      final p = _product(e.key)!;
       return MapEntry(p, e.value);
     }).toList();
   }

@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 import 'supabase.dart';
 
 class StorageService {
@@ -9,16 +9,16 @@ class StorageService {
     return supabase.storage.from(bucket).getPublicUrl(path);
   }
 
-  static Future<String?> getImageUrl(String path) async {
-    try {
-      return supabase.storage.from(bucket).getPublicUrl(path);
-    } catch (_) {
-      return null;
-    }
+  static String getImageUrl(String path) {
+    return supabase.storage.from(bucket).getPublicUrl(path);
   }
 
   static Future<List<String>> listImages(String folder) async {
-    final files = await supabase.storage.from(bucket).list(path: folder);
-    return files.map((f) => supabase.storage.from(bucket).getPublicUrl('$folder/${f.name}')).toList();
+    try {
+      final files = await supabase.storage.from(bucket).list(path: folder);
+      return files.map((f) => supabase.storage.from(bucket).getPublicUrl('$folder/${f.name}')).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }

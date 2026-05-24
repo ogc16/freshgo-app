@@ -6,7 +6,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/ui.dart';
 
 class LoginScreen extends StatefulWidget {
-  final ValueChanged<String> onLogin;
+  final void Function(String email, String password) onLogin;
   final VoidCallback onSignUp;
   final VoidCallback onGuestLogin;
   final ValueChanged<String> onPhoneLogin;
@@ -26,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _isEmailMode = true;
@@ -38,96 +39,112 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  bool _validEmail(String v) => v.contains('@') && v.contains('.');
+  bool _validPhone(String v) => v.length >= 7 && RegExp(r'^\d+$').hasMatch(v);
+
+  void _submitEmail() {
+    if (!_validEmail(_emailController.text.trim())) return;
+    widget.onLogin(_emailController.text.trim(), _passwordController.text);
+  }
+
+  void _submitPhone() {
+    if (!_validPhone(_phoneController.text.trim())) return;
+    widget.onPhoneLogin(_phoneController.text.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale;
     final auth = context.watch<AuthProvider>();
     final loading = auth.status == AuthStatus.authenticating;
     final error = auth.error;
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.only(top: 60, bottom: 40, left: 24, right: 24),
-            decoration: const BoxDecoration(color: green),
-            child: Stack(
-              children: [
-                Positioned(top: -40, right: -40, child: Container(width: 160, height: 160, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x0FFFFFFF)))),
-                Positioned(bottom: -30, left: -30, child: Container(width: 120, height: 120, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x26F5A100)))),
-                Column(
-                  children: [
-                    const Text('\u{1F37D}\u{FE0F}', style: TextStyle(fontSize: 64)),
-                    const SizedBox(height: 14),
-                    const Text('FoodApp', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    Text(
-                      tr('login.tagline', locale),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 14, height: 1.5),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTabToggle(locale),
-                const SizedBox(height: 24),
-                if (error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFFCDD2)),
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.only(top: 60, bottom: 40, left: 24, right: 24),
+              decoration: const BoxDecoration(color: green),
+              child: Stack(
+                children: [
+                  Positioned(top: -40, right: -40, child: Container(width: 160, height: 160, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x0FFFFFFF)))),
+                  Positioned(bottom: -30, left: -30, child: Container(width: 120, height: 120, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x26F5A100)))),
+                  Column(
+                    children: [
+                      const Text('\u{1F37D}\u{FE0F}', style: TextStyle(fontSize: 64)),
+                      const SizedBox(height: 14),
+                      const Text('FoodApp', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+                      Text(
+                        tr('login.tagline', locale),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 14, height: 1.5),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: danger, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(error, style: const TextStyle(fontSize: 13, color: danger))),
-                          GestureDetector(onTap: () => context.read<AuthProvider>().clearError(), child: const Icon(Icons.close, size: 16, color: danger)),
-                        ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTabToggle(locale),
+                  const SizedBox(height: 24),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFFCDD2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: danger, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(error, style: const TextStyle(fontSize: 13, color: danger))),
+                            GestureDetector(onTap: () => context.read<AuthProvider>().clearError(), child: const Icon(Icons.close, size: 16, color: danger)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (_isEmailMode) ..._buildEmailFields(locale, loading),
+                  if (!_isEmailMode) ..._buildPhoneFields(locale, loading),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: GestureDetector(
+                      onTap: loading ? null : widget.onGuestLogin,
+                      child: Text(
+                        tr('login.continueAsGuest', locale),
+                        style: const TextStyle(fontSize: 14, color: txt2, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
                       ),
                     ),
                   ),
-                if (_isEmailMode) ..._buildEmailFields(locale, loading),
-                if (!_isEmailMode) ..._buildPhoneFields(locale, loading),
-                const SizedBox(height: 16),
-                Center(
-                  child: GestureDetector(
-                    onTap: loading ? null : widget.onGuestLogin,
-                    child: Text(
-                      tr('login.continueAsGuest', locale),
-                      style: const TextStyle(fontSize: 14, color: txt2, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
-                    ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('${tr('login.noAccount', locale)} ', style: const TextStyle(fontSize: 14, color: txt2)),
+                      GestureDetector(
+                        onTap: loading ? null : widget.onSignUp,
+                        child: Text(tr('login.signUp', locale), style: const TextStyle(fontSize: 14, color: green, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('${tr('login.noAccount', locale)} ', style: const TextStyle(fontSize: 14, color: txt2)),
-                    GestureDetector(
-                      onTap: loading ? null : widget.onSignUp,
-                      child: Text(tr('login.signUp', locale), style: const TextStyle(fontSize: 14, color: green, fontWeight: FontWeight.w700)),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -188,6 +205,11 @@ class _LoginScreenState extends State<LoginScreen> {
         controller: _emailController,
         enabled: !loading,
       ),
+      if (_emailController.text.isNotEmpty && !_validEmail(_emailController.text))
+        Padding(
+          padding: const EdgeInsets.only(top: 4, left: 4),
+          child: Text('Invalid email', style: TextStyle(fontSize: 11, color: danger.withValues(alpha: 0.8))),
+        ),
       const SizedBox(height: 16),
       Text(tr('login.password', locale).toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: txt2, letterSpacing: 0.5)),
       const SizedBox(height: 6),
@@ -275,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
       PrimaryButton(
         text: tr('login.signIn', locale),
         loading: loading,
-        onPressed: loading ? null : () => widget.onLogin(_emailController.text),
+        onPressed: loading ? null : _submitEmail,
       ),
     ];
   }
@@ -289,6 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
         keyboardType: TextInputType.phone,
         controller: _phoneController,
         enabled: !loading,
+        onChanged: (_) => setState(() {}),
         prefix: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
@@ -298,11 +321,16 @@ class _LoginScreenState extends State<LoginScreen> {
           child: const Text('+256', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: green)),
         ),
       ),
+      if (_phoneController.text.isNotEmpty && !_validPhone(_phoneController.text))
+        Padding(
+          padding: const EdgeInsets.only(top: 4, left: 4),
+          child: Text('Enter at least 7 digits', style: TextStyle(fontSize: 11, color: danger.withValues(alpha: 0.8))),
+        ),
       const SizedBox(height: 20),
       PrimaryButton(
         text: tr('login.continueSms', locale),
         loading: loading,
-        onPressed: loading ? null : () => widget.onPhoneLogin(_phoneController.text),
+        onPressed: loading ? null : _submitPhone,
       ),
     ];
   }

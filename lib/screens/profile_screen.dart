@@ -6,16 +6,25 @@ import '../providers/profile_provider.dart';
 import '../widgets/ui.dart';
 import '../widgets/language_picker.dart';
 
-List<Map<String, dynamic>> _menuItems(String locale) => [
-  {'icon': '\u{1F464}', 'label': tr('profile.editProfile', locale), 'sub': tr('profile.editProfileSub', locale), 'bg': green3},
-  {'icon': '\u{1F4CD}', 'label': tr('profile.savedAddresses', locale), 'sub': tr('profile.savedAddressesSub', locale), 'bg': const Color(0xFFE3F2FD)},
-  {'icon': '\u{1F4B3}', 'label': tr('profile.paymentMethods', locale), 'sub': tr('profile.paymentMethodsSub', locale), 'bg': const Color(0xFFFFF3D6)},
-  {'icon': '\u{1F4E6}', 'label': tr('profile.orderHistory', locale), 'sub': tr('profile.orderHistorySub', locale), 'bg': const Color(0xFFF3E5F5), 'action': 'orders'},
-  {'icon': '\u{1F3C6}', 'label': 'Loyalty Program', 'sub': 'Earn points & view receipts', 'bg': const Color(0xFFFFF8E1), 'action': 'loyalty'},
-  {'icon': '\u{1F381}', 'label': tr('profile.offers', locale), 'sub': tr('profile.offersSub', locale), 'bg': const Color(0xFFFCE4EC)},
-  {'icon': '\u{1F514}', 'label': tr('profile.notifications', locale), 'sub': tr('profile.notificationsSub', locale), 'bg': const Color(0xFFFFF3E0)},
-  {'icon': '\u{1F4AC}', 'label': tr('profile.help', locale), 'sub': tr('profile.helpSub', locale), 'bg': green3},
-  {'icon': '\u{2B50}', 'label': tr('profile.rate', locale), 'sub': tr('profile.rateSub', locale), 'bg': const Color(0xFFFFFDE7)},
+class MenuItem {
+  final String icon;
+  final String label;
+  final String sub;
+  final Color bg;
+  final String? action;
+  const MenuItem({required this.icon, required this.label, required this.sub, required this.bg, this.action});
+}
+
+List<MenuItem> _menuItems(String locale) => [
+  MenuItem(icon: '\u{1F464}', label: tr('profile.editProfile', locale), sub: tr('profile.editProfileSub', locale), bg: green3),
+  MenuItem(icon: '\u{1F4CD}', label: tr('profile.savedAddresses', locale), sub: tr('profile.savedAddressesSub', locale), bg: const Color(0xFFE3F2FD)),
+  MenuItem(icon: '\u{1F4B3}', label: tr('profile.paymentMethods', locale), sub: tr('profile.paymentMethodsSub', locale), bg: const Color(0xFFFFF3D6)),
+  MenuItem(icon: '\u{1F4E6}', label: tr('profile.orderHistory', locale), sub: tr('profile.orderHistorySub', locale), bg: const Color(0xFFF3E5F5), action: 'orders'),
+  MenuItem(icon: '\u{1F3C6}', label: 'Loyalty Program', sub: 'Earn points & view receipts', bg: const Color(0xFFFFF8E1), action: 'loyalty'),
+  MenuItem(icon: '\u{1F381}', label: tr('profile.offers', locale), sub: tr('profile.offersSub', locale), bg: const Color(0xFFFCE4EC)),
+  MenuItem(icon: '\u{1F514}', label: tr('profile.notifications', locale), sub: tr('profile.notificationsSub', locale), bg: const Color(0xFFFFF3E0)),
+  MenuItem(icon: '\u{1F4AC}', label: tr('profile.help', locale), sub: tr('profile.helpSub', locale), bg: green3),
+  MenuItem(icon: '\u{2B50}', label: tr('profile.rate', locale), sub: tr('profile.rateSub', locale), bg: const Color(0xFFFFFDE7)),
 ];
 
 class ProfileScreen extends StatefulWidget {
@@ -42,6 +51,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailCtl = TextEditingController(text: p.email);
     _phoneCtl = TextEditingController(text: p.phone);
     _addressCtl = TextEditingController(text: p.address);
+    p.loadFromSupabase().then((_) {
+      if (mounted) {
+        _nameCtl.text = p.name;
+        _emailCtl.text = p.email;
+        _phoneCtl.text = p.phone;
+        _addressCtl.text = p.address;
+      }
+    });
   }
 
   @override
@@ -60,6 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       phone: _phoneCtl.text,
       address: _addressCtl.text,
     );
+    context.read<ProfileProvider>().saveToSupabase();
     setState(() => _editing = false);
   }
 
@@ -70,6 +88,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _phoneCtl.text = p.phone;
     _addressCtl.text = p.address;
     setState(() => _editing = false);
+  }
+
+  Future<bool> _confirmLogout() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('profile.cancel', context.read<LocaleProvider>().locale))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: danger),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   @override
@@ -136,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: _editing ? _buildEditForm(locale) : _buildMenu(locale, menu),
+            child: _editing ? _buildEditForm(locale, profile) : _buildMenu(locale, menu),
           ),
         ),
         BottomNav(active: 'profile', onNavigate: widget.onNavigate),
@@ -144,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildEditForm(String locale) {
+  Widget _buildEditForm(String locale, ProfileProvider profile) {
     return ListView(
       children: [
         const SizedBox(height: 8),
@@ -173,14 +210,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: _save,
+                onPressed: profile.saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: green,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: Text(tr('profile.save', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                child: profile.saving
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(tr('profile.save', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -210,74 +249,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenu(String locale, List<Map<String, dynamic>> menu) {
+  Widget _buildMenu(String locale, List<MenuItem> menu) {
     return ListView(
       children: [
         GestureDetector(
           onTap: () => setState(() => _editing = true),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFF5F2EE), width: 0.5)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: green3,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(child: Text('\u{1F464}', style: TextStyle(fontSize: 18))),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(tr('profile.editProfile', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 1),
-                      Text(tr('profile.editProfileSub', locale), style: const TextStyle(fontSize: 12, color: txt3)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 16, color: txt3),
-              ],
-            ),
-          ),
+          child: _menuRow(menu[0], locale),
         ),
         ...menu.skip(1).map((item) => GestureDetector(
-          onTap: item.containsKey('action') ? () => widget.onNavigate(item['action'] as String) : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFF5F2EE), width: 0.5)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: item['bg'] as Color,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(child: Text(item['icon'] as String, style: const TextStyle(fontSize: 18))),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item['label'] as String, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 1),
-                      Text(item['sub'] as String, style: const TextStyle(fontSize: 12, color: txt3)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 16, color: txt3),
-              ],
-            ),
-          ),
+          onTap: item.action != null ? () => widget.onNavigate(item.action!) : null,
+          child: _menuRow(item, locale),
         )),
         const SizedBox(height: 16),
         const Divider(color: Color(0xFFF5F2EE)),
@@ -287,7 +268,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: widget.onLogout,
+            onPressed: () async {
+              if (await _confirmLogout()) widget.onLogout();
+            },
             style: OutlinedButton.styleFrom(
               backgroundColor: const Color(0xFFFEE2E2),
               foregroundColor: danger,
@@ -299,6 +282,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _menuRow(MenuItem item, String locale) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFF5F2EE), width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: item.bg, borderRadius: BorderRadius.circular(10)),
+            child: Center(child: Text(item.icon, style: const TextStyle(fontSize: 18))),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 1),
+                Text(item.sub, style: const TextStyle(fontSize: 12, color: txt3)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 16, color: txt3),
+        ],
+      ),
     );
   }
 }
