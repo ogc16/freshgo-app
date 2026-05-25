@@ -7,6 +7,7 @@ import 'providers/cart_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/loyalty_provider.dart';
 import 'providers/order_provider.dart';
+import 'providers/product_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => LoyaltyProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],

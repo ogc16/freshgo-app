@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../data/products.dart';
 import '../models/product.dart';
+import 'product_provider.dart';
 
 class CartProvider extends ChangeNotifier {
   final Map<int, int> _cart = {};
@@ -10,12 +10,11 @@ class CartProvider extends ChangeNotifier {
   Map<int, int> get cart => _cart;
   bool get cartOpen => _cartOpen;
 
-  Map<int, Product> get _cache {
-    _productCache ??= {for (final p in allProducts) p.id: p};
-    return _productCache!;
+  void cacheFromProvider(ProductProvider p) {
+    _productCache ??= {for (final prod in p.allProducts) prod.id: prod};
   }
 
-  Product? _product(int id) => _cache[id];
+  Product? _product(int id) => _productCache?[id];
 
   void addItem(int id) {
     _cart[id] = (_cart[id] ?? 0) + 1;

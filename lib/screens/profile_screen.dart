@@ -10,24 +10,34 @@ import '../widgets/ui.dart';
 import '../widgets/language_picker.dart';
 
 class _MenuItemData {
-  final String icon;
+  final IconData icon;
   final String label;
   final String sub;
   final Color bg;
+  final Color iconColor;
   final String action;
-  const _MenuItemData({required this.icon, required this.label, required this.sub, required this.bg, required this.action});
+  const _MenuItemData({required this.icon, required this.label, required this.sub, required this.bg, required this.iconColor, required this.action});
 }
 
-List<_MenuItemData> _menuItems(String locale) => [
-  _MenuItemData(icon: '\u{1F464}', label: tr('profile.editProfile', locale), sub: tr('profile.editProfileSub', locale), bg: green3, action: 'edit'),
-  _MenuItemData(icon: '\u{1F4CD}', label: tr('profile.savedAddresses', locale), sub: tr('profile.savedAddressesSub', locale), bg: const Color(0xFFE3F2FD), action: 'addresses'),
-  _MenuItemData(icon: '\u{1F4B3}', label: tr('profile.paymentMethods', locale), sub: tr('profile.paymentMethodsSub', locale), bg: const Color(0xFFFFF3D6), action: 'payment'),
-  _MenuItemData(icon: '\u{1F4E6}', label: tr('profile.orderHistory', locale), sub: tr('profile.orderHistorySub', locale), bg: const Color(0xFFF3E5F5), action: 'orders'),
-  _MenuItemData(icon: '\u{1F3C6}', label: 'Loyalty Program', sub: 'Earn points & view receipts', bg: const Color(0xFFFFF8E1), action: 'loyalty'),
-  _MenuItemData(icon: '\u{1F381}', label: tr('profile.offers', locale), sub: tr('profile.offersSub', locale), bg: const Color(0xFFFCE4EC), action: 'offers'),
-  _MenuItemData(icon: '\u{1F514}', label: tr('profile.notifications', locale), sub: tr('profile.notificationsSub', locale), bg: const Color(0xFFFFF3E0), action: 'notifications'),
-  _MenuItemData(icon: '\u{1F4AC}', label: tr('profile.help', locale), sub: tr('profile.helpSub', locale), bg: green3, action: 'help'),
-  _MenuItemData(icon: '\u{2B50}', label: tr('profile.rate', locale), sub: tr('profile.rateSub', locale), bg: const Color(0xFFFFFDE7), action: 'rate'),
+List<_MenuItemData> _accountMenu(String locale) => [
+  _MenuItemData(icon: Icons.person_outline, label: tr('profile.editProfile', locale), sub: tr('profile.editProfileSub', locale), bg: green3, iconColor: green, action: 'edit'),
+  _MenuItemData(icon: Icons.location_on_outlined, label: tr('profile.savedAddresses', locale), sub: tr('profile.savedAddressesSub', locale), bg: const Color(0xFFE3F2FD), iconColor: info, action: 'addresses'),
+];
+
+List<_MenuItemData> _paymentMenu(String locale) => [
+  _MenuItemData(icon: Icons.payment_outlined, label: tr('profile.paymentMethods', locale), sub: tr('profile.paymentMethodsSub', locale), bg: const Color(0xFFFFF3D6), iconColor: const Color(0xFFE6A800), action: 'payment'),
+  _MenuItemData(icon: Icons.local_offer_outlined, label: tr('profile.offers', locale), sub: tr('profile.offersSub', locale), bg: const Color(0xFFFCE4EC), iconColor: danger, action: 'offers'),
+];
+
+List<_MenuItemData> _historyMenu(String locale) => [
+  _MenuItemData(icon: Icons.receipt_long_outlined, label: tr('profile.orderHistory', locale), sub: tr('profile.orderHistorySub', locale), bg: const Color(0xFFF3E5F5), iconColor: const Color(0xFF7B1FA2), action: 'orders'),
+  _MenuItemData(icon: Icons.workspace_premium_outlined, label: 'Loyalty Program', sub: 'Earn points & view receipts', bg: const Color(0xFFFFF8E1), iconColor: amber, action: 'loyalty'),
+];
+
+List<_MenuItemData> _supportMenu(String locale) => [
+  _MenuItemData(icon: Icons.notifications_outlined, label: tr('profile.notifications', locale), sub: tr('profile.notificationsSub', locale), bg: const Color(0xFFFFF3E0), iconColor: const Color(0xFFE65100), action: 'notifications'),
+  _MenuItemData(icon: Icons.help_outline, label: tr('profile.help', locale), sub: tr('profile.helpSub', locale), bg: green3, iconColor: green, action: 'help'),
+  _MenuItemData(icon: Icons.star_outline, label: tr('profile.rate', locale), sub: tr('profile.rateSub', locale), bg: const Color(0xFFFFFDE7), iconColor: amber, action: 'rate'),
 ];
 
 class ProfileScreen extends StatefulWidget {
@@ -39,12 +49,14 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   bool _editing = false;
   late TextEditingController _nameCtl;
   late TextEditingController _emailCtl;
   late TextEditingController _phoneCtl;
   late TextEditingController _addressCtl;
+  late AnimationController _slideCtl;
+  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
@@ -62,6 +74,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _addressCtl.text = p.address;
       }
     });
+    _slideCtl = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(CurvedAnimation(parent: _slideCtl, curve: Curves.easeOut));
   }
 
   @override
@@ -70,7 +84,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailCtl.dispose();
     _phoneCtl.dispose();
     _addressCtl.dispose();
+    _slideCtl.dispose();
     super.dispose();
+  }
+
+  void _toggleEdit() {
+    setState(() => _editing = !_editing);
+    if (_editing) _slideCtl.forward(); else _slideCtl.reverse();
   }
 
   void _save() {
@@ -81,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       address: _addressCtl.text,
     );
     context.read<ProfileProvider>().saveToSupabase();
-    setState(() => _editing = false);
+    _toggleEdit();
   }
 
   void _cancel() {
@@ -90,17 +110,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailCtl.text = p.email;
     _phoneCtl.text = p.phone;
     _addressCtl.text = p.address;
-    setState(() => _editing = false);
+    _toggleEdit();
   }
 
   Future<bool> _confirmLogout() async {
+    final locale = context.read<LocaleProvider>().locale;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('profile.cancel', context.read<LocaleProvider>().locale))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('profile.cancel', locale))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: danger),
@@ -126,140 +148,279 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale;
     final profile = context.watch<ProfileProvider>();
-    final menu = _menuItems(locale);
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
-          decoration: const BoxDecoration(color: green),
-          child: Stack(
-            children: [
-              Positioned(top: -30, right: -30, child: Container(width: 130, height: 130,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x0DFFFFFF)))),
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: _editing ? _pickImage : () => setState(() => _editing = true),
-                    child: Container(
-                      width: 76, height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.18),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 3),
-                      ),
-                      child: ClipOval(
-                        child: _editing
-                          ? const Icon(Icons.camera_alt, color: Colors.white, size: 28)
-                          : profile.avatarUrl.isNotEmpty
-                              ? Image.network(profile.avatarUrl, fit: BoxFit.cover, width: 76, height: 76)
-                              : const Text('\u{1F464}', style: TextStyle(fontSize: 34)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (!_editing) ...[
-                    Text(profile.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 3),
-                    Text(profile.phone, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
-                    const SizedBox(height: 3),
-                    Text(profile.email, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
-                  ] else
-                    const SizedBox(height: 4),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _Stat(label: tr('profile.orders', locale), value: '12'),
-                      const SizedBox(width: 24),
-                      _Stat(label: tr('profile.addresses', locale), value: '3'),
-                      const SizedBox(width: 24),
-                      _Stat(label: tr('profile.rating', locale), value: '4.8'),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: _editing ? _buildEditForm(locale, profile) : _buildMenu(locale, menu),
-          ),
-        ),
+        _buildHeader(locale, profile),
+        Expanded(child: _editing ? _buildEditBody(locale, profile) : _buildMenuBody(locale)),
         BottomNav(active: 'profile', onNavigate: widget.onNavigate),
       ],
     );
   }
 
-  Widget _buildEditForm(String locale, ProfileProvider profile) {
-    return ListView(
-      children: [
-        const SizedBox(height: 8),
-        _buildField(tr('profile.nameHint', locale), _nameCtl, Icons.person),
-        const SizedBox(height: 14),
-        _buildField(tr('profile.phoneHint', locale), _phoneCtl, Icons.phone),
-        const SizedBox(height: 14),
-        _buildField(tr('profile.emailHint', locale), _emailCtl, Icons.email),
-        const SizedBox(height: 14),
-        _buildField(tr('profile.addressHint', locale), _addressCtl, Icons.location_on),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _cancel,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: txt3,
-                  side: const BorderSide(color: Color(0xFFE0D9D2)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(tr('profile.cancel', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: profile.saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: profile.saving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text(tr('profile.save', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
+  Widget _buildHeader(String locale, ProfileProvider profile) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1C5C35), Color(0xFF2E7D4F)],
         ),
-      ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _editing ? _pickImage : () => _toggleEdit(),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 68, height: 68,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.18),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2.5),
+                      ),
+                      child: ClipOval(
+                        child: profile.avatarUrl.isNotEmpty
+                            ? Image.network(profile.avatarUrl, fit: BoxFit.cover, width: 68, height: 68)
+                            : const Icon(Icons.person, size: 34, color: Colors.white70),
+                      ),
+                    ),
+                    if (_editing)
+                      Positioned(right: 0, bottom: 0,
+                        child: Container(
+                          width: 24, height: 24,
+                          decoration: const BoxDecoration(shape: BoxShape.circle, color: amber),
+                          child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(profile.name.isNotEmpty ? profile.name : 'Guest User',
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 3),
+                    if (profile.phone.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(Icons.phone, size: 12, color: Colors.white.withValues(alpha: 0.6)),
+                          const SizedBox(width: 4),
+                          Text(profile.phone, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
+                        ],
+                      ),
+                    if (profile.email.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(Icons.email_outlined, size: 12, color: Colors.white.withValues(alpha: 0.6)),
+                          const SizedBox(width: 4),
+                          Text(profile.email, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(rad),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _Stat(icon: Icons.receipt_outlined, label: tr('profile.orders', locale), value: '12'),
+                _divider(),
+                _Stat(icon: Icons.location_on_outlined, label: tr('profile.addresses', locale), value: '3'),
+                _divider(),
+                _Stat(icon: Icons.star_half, label: tr('profile.rating', locale), value: '4.8'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
-  Widget _buildField(String label, TextEditingController ctl, IconData icon) {
+  Widget _divider() => Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.15));
+
+  Widget _buildMenuBody(String locale) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F6F4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8E2DC)),
+      decoration: const BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: TextField(
-        controller: ctl,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          icon: Icon(icon, size: 20, color: green),
-          border: InputBorder.none,
-          hintText: label,
-          hintStyle: const TextStyle(color: txt3),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
+        children: [
+          _buildSection(locale, Icons.manage_accounts_outlined, 'Account', _accountMenu(locale)),
+          const SizedBox(height: 8),
+          _buildSection(locale, Icons.credit_card_outlined, 'Payments & Offers', _paymentMenu(locale)),
+          const SizedBox(height: 8),
+          _buildSection(locale, Icons.history_outlined, 'Orders & Rewards', _historyMenu(locale)),
+          const SizedBox(height: 8),
+          _buildSection(locale, Icons.support_outlined, 'Support & Feedback', _supportMenu(locale)),
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFFE8E4DF)),
+          const SizedBox(height: 12),
+          LanguagePicker(),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                if (await _confirmLogout()) widget.onLogout();
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: Text(tr('profile.logOut', locale)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: danger,
+                side: const BorderSide(color: Color(0xFFFFCDD2), width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(String locale, IconData sectionIcon, String title, List<_MenuItemData> items) {
+    return SectionCard(
+      title: title,
+      child: Column(
+        children: items.map((item) => _menuRow(item)).toList(),
+      ),
+    );
+  }
+
+  Widget _menuRow(_MenuItemData item) {
+    return InkWell(
+      onTap: () => _handleMenuAction(item.action),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: item.bg, borderRadius: BorderRadius.circular(10)),
+              child: Icon(item.icon, size: 18, color: item.iconColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: txt)),
+                  const SizedBox(height: 1),
+                  Text(item.sub, style: const TextStyle(fontSize: 12, color: txt3)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: txt3.withValues(alpha: 0.6)),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEditBody(String locale, ProfileProvider profile) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _cancel,
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: border),
+                    color: Colors.white,
+                  ),
+                  child: const Icon(Icons.close, size: 18, color: txt3),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Edit Profile', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              profile.saving
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: green))
+                  : GestureDetector(
+                      onTap: _save,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(color: green, borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          FormInput(
+            hintText: tr('profile.nameHint', locale),
+            controller: _nameCtl,
+            prefix: const Icon(Icons.person_outline, size: 20, color: green),
+          ),
+          const SizedBox(height: 14),
+          FormInput(
+            hintText: tr('profile.phoneHint', locale),
+            controller: _phoneCtl,
+            keyboardType: TextInputType.phone,
+            prefix: const Icon(Icons.phone_outlined, size: 20, color: green),
+          ),
+          const SizedBox(height: 14),
+          FormInput(
+            hintText: tr('profile.emailHint', locale),
+            controller: _emailCtl,
+            keyboardType: TextInputType.emailAddress,
+            prefix: const Icon(Icons.email_outlined, size: 20, color: green),
+          ),
+          const SizedBox(height: 14),
+          FormInput(
+            hintText: tr('profile.addressHint', locale),
+            controller: _addressCtl,
+            prefix: const Icon(Icons.location_on_outlined, size: 20, color: green),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlineButton(
+                  text: tr('profile.cancel', locale),
+                  onPressed: _cancel,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: PrimaryButton(
+                  text: tr('profile.save', locale),
+                  onPressed: profile.saving ? null : _save,
+                  disabled: profile.saving,
+                  loading: profile.saving,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -267,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleMenuAction(String action) {
     switch (action) {
       case 'edit':
-        setState(() => _editing = true);
+        _toggleEdit();
         break;
       case 'orders':
       case 'loyalty':
@@ -281,85 +442,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'offers':
       case 'notifications':
       case 'rate':
-        showComingSoon(context, _menuItems('')[_menuItems('').indexWhere((m) => m.action == action)].label);
+        final all = [..._accountMenu(''), ..._paymentMenu(''), ..._historyMenu(''), ..._supportMenu('')];
+        showComingSoon(context, all.firstWhere((m) => m.action == action).label);
         break;
     }
-  }
-
-  Widget _buildMenu(String locale, List<_MenuItemData> menu) {
-    return ListView(
-      children: [
-        ...menu.map((item) => GestureDetector(
-          onTap: () => _handleMenuAction(item.action),
-          child: _menuRow(item, locale),
-        )),
-        const SizedBox(height: 16),
-        const Divider(color: Color(0xFFF5F2EE)),
-        const SizedBox(height: 16),
-        LanguagePicker(),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () async {
-              if (await _confirmLogout()) widget.onLogout();
-            },
-            style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFFFEE2E2),
-              foregroundColor: danger,
-              side: const BorderSide(color: Color(0xFFFFCDD2), width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: Text(tr('profile.logOut', locale), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _menuRow(_MenuItemData item, String locale) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF5F2EE), width: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: item.bg, borderRadius: BorderRadius.circular(10)),
-            child: Center(child: Text(item.icon, style: const TextStyle(fontSize: 18))),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 1),
-                Text(item.sub, style: const TextStyle(fontSize: 12, color: txt3)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, size: 16, color: txt3),
-        ],
-      ),
-    );
   }
 }
 
 class _Stat extends StatelessWidget {
+  final IconData icon;
   final String label, value;
-  const _Stat({required this.label, required this.value});
+  const _Stat({required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: amber, fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+        Icon(icon, size: 16, color: amber),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800, height: 1)),
+        const SizedBox(height: 3),
+        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11, height: 1)),
       ],
     );
   }

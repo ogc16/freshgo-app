@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/products.dart';
 import '../i18n/strings.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
+import '../providers/product_provider.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_image.dart';
 import '../widgets/ui.dart';
@@ -30,20 +30,29 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    context.read<ProductProvider>().load();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  List<Product> get _products {
-    if (_search.isEmpty) return products[_category]!;
-    return allProducts.where((p) => p.name.toLowerCase().contains(_search.toLowerCase())).toList();
+  List<Product> _filtered(ProductProvider pp) {
+    if (_search.isEmpty) return pp.products[_category] ?? [];
+    return pp.allProducts.where((p) => p.name.toLowerCase().contains(_search.toLowerCase())).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final locale = context.watch<LocaleProvider>().locale;
+    final pp = context.watch<ProductProvider>();
+    cart.cacheFromProvider(pp);
+    final items = _filtered(pp);
     return Column(
       children: [
         Container(
@@ -256,14 +265,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _search.isNotEmpty ? '${tr('home.resultsFor', locale)} "$_search"' : '${categoryMeta[_category]!['label']} ${tr('home.items', locale)}',
+                          _search.isNotEmpty ? '${tr('home.resultsFor', locale)} "$_search"' : '${ProductProvider.categoryMeta[_category]!['label']} ${tr('home.items', locale)}',
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                         ),
                         Text(tr('home.seeAll', locale), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: green)),
                       ],
                     ),
                   ),
-                  if (_products.isEmpty)
+                  if (items.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
                       child: Column(
@@ -288,12 +297,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisSpacing: 12,
                           childAspectRatio: 0.72,
                         ),
-                        itemCount: _products.length,
+                        itemCount: items.length,
                         itemBuilder: (_, i) => _ProductCard(
-                          product: _products[i],
-                          qty: cart.cart[_products[i].id] ?? 0,
-                          onAdd: () => cart.addItem(_products[i].id),
-                          onRemove: () => cart.removeItem(_products[i].id),
+                          product: items[i],
+                          qty: cart.cart[items[i].id] ?? 0,
+                          onAdd: () => cart.addItem(items[i].id),
+                          onRemove: () => cart.removeItem(items[i].id),
                         ),
                       ),
                     ),
