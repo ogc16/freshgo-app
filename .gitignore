@@ -47,3 +47,6 @@ app.*.map.json
 # Dependencies & build output
 node_modules/
 /dist/
+
+# Database migrations
+supabase_migration.sql
