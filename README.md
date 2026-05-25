@@ -199,4 +199,4 @@ FreshGo uses a custom Dart constant-based design system defined in `lib/widgets/
 
 ## License
 
-MIT
+Opensource
