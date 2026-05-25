@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="#FF1C5C35" />
+    <item android:drawable="@color/freshgo_green" />
 
     <!-- You can insert your own image assets here -->
     <!-- <item>
