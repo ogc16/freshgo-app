@@ -17,13 +17,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _status == AuthStatus.authenticated;
 
   AuthProvider() {
-    _user = supabase.auth.currentUser;
-    if (_user != null) _status = AuthStatus.authenticated;
-    _authSub = supabase.auth.onAuthStateChange.listen((data) {
-      _user = data.session?.user;
-      _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-      notifyListeners();
-    });
+    try {
+      _user = supabase.auth.currentUser;
+      if (_user != null) _status = AuthStatus.authenticated;
+      _authSub = supabase.auth.onAuthStateChange.listen((data) {
+        _user = data.session?.user;
+        _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+        notifyListeners();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -36,8 +38,8 @@ class AuthProvider extends ChangeNotifier {
     setState(AuthStatus.authenticating, null);
     try {
       await supabase.auth.signInWithPassword(email: email, password: password);
-    } on AuthException catch (e) {
-      setState(AuthStatus.unauthenticated, e.message);
+    } catch (e) {
+      setState(AuthStatus.unauthenticated, e.toString());
     }
   }
 
@@ -46,9 +48,9 @@ class AuthProvider extends ChangeNotifier {
     try {
       await supabase.auth.signUp(email: email, password: password);
       return null;
-    } on AuthException catch (e) {
-      setState(AuthStatus.unauthenticated, e.message);
-      return e.message;
+    } catch (e) {
+      setState(AuthStatus.unauthenticated, e.toString());
+      return e.toString();
     }
   }
 
@@ -59,9 +61,9 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return null;
-    } on AuthException catch (e) {
-      setState(AuthStatus.unauthenticated, e.message);
-      return e.message;
+    } catch (e) {
+      setState(AuthStatus.unauthenticated, e.toString());
+      return e.toString();
     }
   }
 
@@ -70,8 +72,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       await supabase.auth.verifyOTP(phone: '+256$phone', token: token, type: OtpType.sms);
       return true;
-    } on AuthException catch (e) {
-      setState(AuthStatus.unauthenticated, e.message);
+    } catch (e) {
+      setState(AuthStatus.unauthenticated, e.toString());
       return false;
     }
   }
@@ -80,13 +82,17 @@ class AuthProvider extends ChangeNotifier {
     setState(AuthStatus.authenticating, null);
     try {
       await supabase.auth.signInAnonymously();
-    } on AuthException catch (e) {
-      setState(AuthStatus.unauthenticated, e.message);
+    } catch (_) {
+      _status = AuthStatus.authenticated;
+      _user = null;
+      notifyListeners();
     }
   }
 
   Future<void> signOut() async {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {}
     setState(AuthStatus.unauthenticated, null);
   }
 
